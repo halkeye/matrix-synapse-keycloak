@@ -36,7 +36,7 @@ class KeycloakAuthProvider(object):
 
     def __init__(self, config, account_handler):
         self.account_handler = account_handler
-        self.store = self.account_handler.hs.get_datastore()
+        self.store = self.account_handler._hs.get_datastore()
 
         self.url = config.url
         self.client_id = config.client_id
@@ -141,7 +141,7 @@ refresh_tokens = array_append(keycloak_provider_tokens.refresh_tokens, '{1}')
             sql = template.format(user_id, token['refresh_token'])
             txn.execute(sql)
 
-        self.store.runInteraction("save_keycloak_token", _save_keycloak_token)
+        self.account_handler.run_db_interaction("save_keycloak_token", _save_keycloak_token)
         logger.info("insert end")
         defer.returnValue(True)
 
@@ -168,7 +168,7 @@ WHERE user_id = '{}'
             txn.execute(sql.format(user_id))
             return txn.fetchone()
 
-        res = yield self.store.runInteraction("get_refresh_tokens", _get_refresh_tokens)
+        res = yield self.account_handler.run_db_interaction("get_refresh_tokens", _get_refresh_tokens)
 
         keycloak_openid = KeycloakOpenID(server_url=self.url,
                     client_id=self.client_id,
@@ -189,7 +189,7 @@ WHERE user_id = '{}'
         auth_handler = self.account_handler.hs.get_auth_handler()
         yield auth_handler.delete_access_tokens_for_user(user_id)
 
-        res = self.store.runInteraction("clear_keycloak_tokens", _clear_keycloak_tokens)
+        res = self.account_handler.run_db_interaction("clear_keycloak_tokens", _clear_keycloak_tokens)
         defer.returnValue(True)
 
 
